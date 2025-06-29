@@ -47,21 +47,28 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   useEffect(() => {
+    let isMounted = true;
     (async () => {
       try {
         const json = await AsyncStorage.getItem(STORAGE_KEY);
+        if (!isMounted) return;
         if (json) {
           const data = JSON.parse(json) as BudgetState;
-          setCategories(data.categories);
-          setTransactions(data.transactions);
-        } else {
+          if (isMounted) {
+            setCategories(data.categories);
+            setTransactions(data.transactions);
+          }
+        } else if (isMounted) {
           setCategories(DEFAULT_CATEGORIES);
         }
       } catch (e) {
         console.error('Failed to load budget data', e);
-        setCategories(DEFAULT_CATEGORIES);
+        if (isMounted) setCategories(DEFAULT_CATEGORIES);
       }
     })();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
