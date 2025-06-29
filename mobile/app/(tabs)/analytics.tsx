@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Dimensions, Pressable, Modal, View, Button } from 'react-native';
+import { StyleSheet, Dimensions, Pressable, Modal, View, Button, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { PieChart } from 'react-native-chart-kit';
 import { ThemedText } from '@/components/ThemedText';
@@ -7,6 +7,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { useBudget } from '@/contexts/BudgetContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import ThemeToggleButton from '@/components/ThemeToggleButton';
 export default function AnalyticsScreen() {
   const { transactions, categories } = useBudget();
   const scheme = useColorScheme() ?? 'light';
@@ -31,35 +32,38 @@ export default function AnalyticsScreen() {
     })
     .filter((d) => d.total > 0);
 
-  const COLORS = ['#F44336', '#E91E63', '#9C27B0', '#2196F3', '#009688', '#FF9800', '#795548'];
+  const EXPENSE_COLORS = ['#FFCDD2', '#EF9A9A', '#E57373', '#EF5350', '#F44336'];
+  const INCOME_COLORS = ['#C8E6C9', '#A5D6A7', '#81C784', '#66BB6A', '#4CAF50'];
+  const palette = viewType === 'expense' ? EXPENSE_COLORS : INCOME_COLORS;
 
   const data = totals.map((d, idx) => ({
     name: d.name,
     population: d.total,
-    color: COLORS[idx % COLORS.length],
+    color: palette[idx % palette.length],
     legendFontColor: Colors[scheme].text,
     legendFontSize: 15,
   }));
 
   return (
     <ThemedView style={styles.container}>
+      <ThemeToggleButton />
       <ThemedText type="title">Analytics</ThemedText>
       <Pressable onPress={() => setShowStart(true)} style={styles.dateButton}>
         <ThemedText>From: {startDate.toLocaleDateString()}</ThemedText>
       </Pressable>
       <Modal transparent visible={showStart} animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <ThemedView style={styles.modalContent}>
             <DateTimePicker
               value={startDate}
               mode="date"
-              display="calendar"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(e, d) => {
                 setShowStart(false);
                 if (d) setStartDate(d);
               }}
             />
-          </View>
+          </ThemedView>
         </View>
       </Modal>
       <Pressable onPress={() => setShowEnd(true)} style={styles.dateButton}>
@@ -67,17 +71,17 @@ export default function AnalyticsScreen() {
       </Pressable>
       <Modal transparent visible={showEnd} animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <ThemedView style={styles.modalContent}>
             <DateTimePicker
               value={endDate}
               mode="date"
-              display="calendar"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(e, d) => {
                 setShowEnd(false);
                 if (d) setEndDate(d);
               }}
             />
-          </View>
+          </ThemedView>
         </View>
       </Modal>
       <View style={styles.switchRow}>
@@ -131,7 +135,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 8,
   },
