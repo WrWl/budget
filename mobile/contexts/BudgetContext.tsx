@@ -27,6 +27,8 @@ interface BudgetContextValue extends BudgetState {
     type: 'income' | 'expense',
     amount: number,
     categoryId: string,
+    description?: string,
+    date?: Date
     description?: string
   ) => void;
 }
@@ -47,6 +49,14 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   useEffect(() => {
+    (async () => {
+      try {
+        const json = await AsyncStorage.getItem(STORAGE_KEY);
+        if (json) {
+          const data = JSON.parse(json) as BudgetState;
+          setCategories(data.categories);
+          setTransactions(data.transactions);
+        } else {
     let isMounted = true;
     (async () => {
       try {
@@ -63,6 +73,9 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (e) {
         console.error('Failed to load budget data', e);
+        setCategories(DEFAULT_CATEGORIES);
+      }
+    })();
         if (isMounted) setCategories(DEFAULT_CATEGORIES);
       }
     })();
@@ -93,6 +106,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     type: 'income' | 'expense',
     amount: number,
     categoryId: string,
+    description?: string,
+    date: Date = new Date()
     description?: string
   ) => {
     setTransactions((prev) => [
@@ -103,6 +118,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         amount,
         categoryId,
         description,
+        date: date.toISOString(),
         date: new Date().toISOString(),
       },
     ]);

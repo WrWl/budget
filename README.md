@@ -17,3 +17,5 @@ Expo CLI is required to run the project.
 - Record income and expenses with categories
 - Default categories include **Дім**, **Продукти**, **Одяг** and **Зарплата**
 - Create your own categories directly from the home screen
+- Choose a date for each transaction
+- View a pie chart of income vs expenses for any period
