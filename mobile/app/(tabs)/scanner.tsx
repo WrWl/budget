@@ -1,10 +1,12 @@
 import { StyleSheet } from 'react-native';
+import ThemeToggleButton from '@/components/ThemeToggleButton';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 export default function ScannerScreen() {
   return (
     <ThemedView style={styles.container}>
+      <ThemeToggleButton />
       <ThemedText type="title">Receipt Scanner</ThemedText>
       <ThemedText>Use your camera to scan receipts and auto-add expenses.</ThemedText>
     </ThemedView>
