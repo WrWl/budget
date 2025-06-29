@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Button, Pressable, Modal, View } from 'react-native';
+import { StyleSheet, Button, Pressable, Modal, View, ScrollView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -10,8 +10,14 @@ import { ThemedTextInput } from '@/components/ThemedTextInput';
 import { useBudget } from '@/contexts/BudgetContext';
 
 export default function HomeScreen() {
-  const { categories, transactions, addTransaction, addCategory, deleteTransaction } =
-    useBudget();
+  const {
+    categories,
+    transactions,
+    addTransaction,
+    addCategory,
+    deleteTransaction,
+    deleteCategory,
+  } = useBudget();
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [categoryId, setCategoryId] = useState('');
@@ -20,6 +26,8 @@ export default function HomeScreen() {
   const [newCategoryType, setNewCategoryType] = useState<'income' | 'expense'>('expense');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
 
   useEffect(() => {
     const first = categories.find((c) => c.type === type);
@@ -46,75 +54,130 @@ export default function HomeScreen() {
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="title">Budget</ThemedText>
-      <ThemedText type="subtitle">Add Transaction</ThemedText>
-      <Picker selectedValue={type} onValueChange={(v) => setType(v)} style={styles.picker}>
-        <Picker.Item label="Expense" value="expense" />
-        <Picker.Item label="Income" value="income" />
-      </Picker>
-      <Picker selectedValue={categoryId} onValueChange={(v) => setCategoryId(v)} style={styles.picker}>
-        {categories
-          .filter((c) => c.type === type)
-          .map((c) => (
-            <Picker.Item key={c.id} label={c.name} value={c.id} />
-          ))}
-      </Picker>
-      <ThemedTextInput
-        placeholder="Amount"
-        value={amount}
-        onChangeText={setAmount}
-        keyboardType="numeric"
-        style={styles.input}
-      />
-      <ThemedTextInput
-        placeholder="Description"
-        value={description}
-        onChangeText={setDescription}
-        style={styles.input}
-      />
-      <Pressable onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
-        <ThemedText>{date.toLocaleDateString()}</ThemedText>
-      </Pressable>
-      <Modal transparent visible={showDatePicker} animationType="slide">
+      <View style={styles.addButtons}>
+        <Button
+          title="Add Expense"
+          onPress={() => {
+            setType('expense');
+            setShowTransactionModal(true);
+          }}
+        />
+        <Button
+          title="Add Income"
+          onPress={() => {
+            setType('income');
+            setShowTransactionModal(true);
+          }}
+        />
+      </View>
+
+      <Modal transparent visible={showTransactionModal} animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <DateTimePicker
-              value={date}
-              mode="date"
-              display="calendar"
-              onChange={(e, d) => {
-                setShowDatePicker(false);
-                if (d) setDate(d);
-              }}
-            />
+            <ScrollView>
+              <ThemedText type="subtitle">Add Transaction</ThemedText>
+              <Picker selectedValue={type} onValueChange={(v) => setType(v)} style={styles.picker}>
+                <Picker.Item label="Expense" value="expense" />
+                <Picker.Item label="Income" value="income" />
+              </Picker>
+              <Picker selectedValue={categoryId} onValueChange={(v) => setCategoryId(v)} style={styles.picker}>
+                {categories
+                  .filter((c) => c.type === type)
+                  .map((c) => (
+                    <Picker.Item key={c.id} label={c.name} value={c.id} />
+                  ))}
+              </Picker>
+              <Pressable onPress={() => setShowCategoryModal(true)} style={styles.manageButton}>
+                <ThemedText>Edit Categories</ThemedText>
+              </Pressable>
+              <ThemedTextInput
+                placeholder="Amount"
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="numeric"
+                style={styles.input}
+              />
+              <ThemedTextInput
+                placeholder="Description"
+                value={description}
+                onChangeText={setDescription}
+                style={styles.input}
+              />
+              <Pressable onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
+                <ThemedText>{date.toLocaleDateString()}</ThemedText>
+              </Pressable>
+              <Modal transparent visible={showDatePicker} animationType="slide">
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalContent}>
+                    <DateTimePicker
+                      value={date}
+                      mode="date"
+                      display="calendar"
+                      onChange={(e, d) => {
+                        setShowDatePicker(false);
+                        if (d) setDate(d);
+                      }}
+                    />
+                  </View>
+                </View>
+              </Modal>
+              <Button title="Save" onPress={() => { submitTransaction(); setShowTransactionModal(false); }} />
+              <Button title="Cancel" onPress={() => setShowTransactionModal(false)} />
+            </ScrollView>
           </View>
         </View>
       </Modal>
-      <Button title="Add" onPress={submitTransaction} />
-      <ThemedText type="subtitle" style={styles.section}>Add Category</ThemedText>
-      <Picker selectedValue={newCategoryType} onValueChange={(v) => setNewCategoryType(v)} style={styles.picker}>
-        <Picker.Item label="Expense" value="expense" />
-        <Picker.Item label="Income" value="income" />
-      </Picker>
-      <ThemedTextInput
-        placeholder="Category name"
-        value={newCategoryName}
-        onChangeText={setNewCategoryName}
-        style={styles.input}
-      />
-      <Button title="Add Category" onPress={submitCategory} />
+
+      <Modal transparent visible={showCategoryModal} animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ThemedText type="subtitle">Manage Categories</ThemedText>
+            {categories
+              .filter((c) => c.type === type)
+              .map((c) => (
+                <View key={c.id} style={styles.categoryRow}>
+                  <ThemedText>{c.name}</ThemedText>
+                  <Pressable onPress={() => deleteCategory(c.id)}>
+                    <ThemedText style={styles.deleteText}>Delete</ThemedText>
+                  </Pressable>
+                </View>
+              ))}
+            <Picker
+              selectedValue={newCategoryType}
+              onValueChange={(v) => setNewCategoryType(v)}
+              style={styles.picker}
+            >
+              <Picker.Item label="Expense" value="expense" />
+              <Picker.Item label="Income" value="income" />
+            </Picker>
+            <ThemedTextInput
+              placeholder="Category name"
+              value={newCategoryName}
+              onChangeText={setNewCategoryName}
+              style={styles.input}
+            />
+            <Button title="Add Category" onPress={submitCategory} />
+            <Button title="Close" onPress={() => setShowCategoryModal(false)} />
+          </View>
+        </View>
+      </Modal>
+
       <ThemedText type="subtitle" style={styles.section}>Transactions</ThemedText>
-      {transactions.map((t) => (
-        <ThemedView key={t.id} style={styles.transactionRow}>
-          <ThemedText>
-            {t.type === 'expense' ? '-' : '+'}
-            {t.amount} ({categories.find((c) => c.id === t.categoryId)?.name}) -{' '}
-            {new Date(t.date).toLocaleDateString()}
-          </ThemedText>
-          <Pressable onPress={() => deleteTransaction(t.id)}>
-            <ThemedText style={styles.deleteText}>Delete</ThemedText>
-          </Pressable>
-        </ThemedView>
-      ))}
+      <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 32 }}>
+        {transactions.map((t) => (
+          <ThemedView key={t.id} style={styles.transactionRow}>
+            <ThemedText>
+              {t.type === 'expense' ? '-' : '+'}
+              {t.amount} ({categories.find((c) => c.id === t.categoryId)?.name}) -{' '}
+              {new Date(t.date).toLocaleDateString()}
+            </ThemedText>
+            <ThemedText>{t.description}</ThemedText>
+            <Pressable onPress={() => deleteTransaction(t.id)}>
+              <ThemedText style={styles.deleteText}>Delete</ThemedText>
+            </Pressable>
+          </ThemedView>
+        ))}
+      </ScrollView>
     </ThemedView>
   );
 }
@@ -152,6 +215,24 @@ const styles = StyleSheet.create({
   },
   deleteText: {
     color: 'red',
+  },
+  addButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  manageButton: {
+    padding: 8,
+    alignItems: 'center',
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  scroll: {
+    flex: 1,
   },
   modalOverlay: {
     flex: 1,
