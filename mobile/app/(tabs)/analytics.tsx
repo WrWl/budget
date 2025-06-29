@@ -1,9 +1,7 @@
-
 import React, { useState } from 'react';
 import { StyleSheet, Dimensions, Pressable } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { PieChart } from 'react-native-chart-kit';
-
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useBudget } from '@/contexts/BudgetContext';
@@ -82,6 +80,7 @@ export default function AnalyticsScreen() {
         width={Dimensions.get('window').width - 32}
         height={220}
         accessor="population"
+        backgroundColor={Colors[scheme].background}
         chartConfig={{
           color: () => Colors[scheme].text,
           backgroundColor: Colors[scheme].background,
@@ -91,15 +90,6 @@ export default function AnalyticsScreen() {
         paddingLeft="16"
         absolute
       />
-import { StyleSheet } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-
-export default function AnalyticsScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title">Analytics</ThemedText>
-      <ThemedText>Charts and insights about your spending will appear here.</ThemedText>
     </ThemedView>
   );
 }
@@ -115,7 +105,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 4,
-    alignItems: 'center',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
