@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Button, Pressable, Modal, View, ScrollView } from 'react-native';
+import { StyleSheet, Button, Pressable, Modal, View, ScrollView, Platform } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedTextInput } from '@/components/ThemedTextInput';
+import ThemeToggleButton from '@/components/ThemeToggleButton';
 
 import { useBudget } from '@/contexts/BudgetContext';
 
@@ -53,6 +54,7 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <ThemeToggleButton />
       <ThemedText type="title">Budget</ThemedText>
       <View style={styles.addButtons}>
         <Button
@@ -73,7 +75,7 @@ export default function HomeScreen() {
 
       <Modal transparent visible={showTransactionModal} animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <ThemedView style={styles.modalContent}>
             <ScrollView>
               <ThemedText type="subtitle">Add Transaction</ThemedText>
               <Picker selectedValue={type} onValueChange={(v) => setType(v)} style={styles.picker}>
@@ -108,17 +110,17 @@ export default function HomeScreen() {
               </Pressable>
               <Modal transparent visible={showDatePicker} animationType="slide">
                 <View style={styles.modalOverlay}>
-                  <View style={styles.modalContent}>
+                  <ThemedView style={styles.modalContent}>
                     <DateTimePicker
                       value={date}
                       mode="date"
-                      display="calendar"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                       onChange={(e, d) => {
                         setShowDatePicker(false);
                         if (d) setDate(d);
                       }}
                     />
-                  </View>
+                  </ThemedView>
                 </View>
               </Modal>
               <Button title="Save" onPress={() => { submitTransaction(); setShowTransactionModal(false); }} />
@@ -130,7 +132,7 @@ export default function HomeScreen() {
 
       <Modal transparent visible={showCategoryModal} animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <ThemedView style={styles.modalContent}>
             <ThemedText type="subtitle">Manage Categories</ThemedText>
             {categories
               .filter((c) => c.type === type)
@@ -158,7 +160,7 @@ export default function HomeScreen() {
             />
             <Button title="Add Category" onPress={submitCategory} />
             <Button title="Close" onPress={() => setShowCategoryModal(false)} />
-          </View>
+          </ThemedView>
         </View>
       </Modal>
 
@@ -241,7 +243,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 8,
   },
