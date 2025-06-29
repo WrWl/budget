@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Button, Pressable } from 'react-native';
+import { StyleSheet, Button, Pressable, Modal, View } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -10,7 +10,8 @@ import { ThemedTextInput } from '@/components/ThemedTextInput';
 import { useBudget } from '@/contexts/BudgetContext';
 
 export default function HomeScreen() {
-  const { categories, transactions, addTransaction, addCategory } = useBudget();
+  const { categories, transactions, addTransaction, addCategory, deleteTransaction } =
+    useBudget();
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [categoryId, setCategoryId] = useState('');
@@ -73,17 +74,21 @@ export default function HomeScreen() {
       <Pressable onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
         <ThemedText>{date.toLocaleDateString()}</ThemedText>
       </Pressable>
-      {showDatePicker && (
-        <DateTimePicker
-          value={date}
-          mode="date"
-          display="default"
-          onChange={(e, d) => {
-            setShowDatePicker(false);
-            if (d) setDate(d);
-          }}
-        />
-      )}
+      <Modal transparent visible={showDatePicker} animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <DateTimePicker
+              value={date}
+              mode="date"
+              display="calendar"
+              onChange={(e, d) => {
+                setShowDatePicker(false);
+                if (d) setDate(d);
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
       <Button title="Add" onPress={submitTransaction} />
       <ThemedText type="subtitle" style={styles.section}>Add Category</ThemedText>
       <Picker selectedValue={newCategoryType} onValueChange={(v) => setNewCategoryType(v)} style={styles.picker}>
@@ -99,9 +104,16 @@ export default function HomeScreen() {
       <Button title="Add Category" onPress={submitCategory} />
       <ThemedText type="subtitle" style={styles.section}>Transactions</ThemedText>
       {transactions.map((t) => (
-        <ThemedText key={t.id}>
-          {t.type === 'expense' ? '-' : '+'}{t.amount} ({categories.find(c => c.id === t.categoryId)?.name}) - {new Date(t.date).toLocaleDateString()}
-        </ThemedText>
+        <ThemedView key={t.id} style={styles.transactionRow}>
+          <ThemedText>
+            {t.type === 'expense' ? '-' : '+'}
+            {t.amount} ({categories.find((c) => c.id === t.categoryId)?.name}) -{' '}
+            {new Date(t.date).toLocaleDateString()}
+          </ThemedText>
+          <Pressable onPress={() => deleteTransaction(t.id)}>
+            <ThemedText style={styles.deleteText}>Delete</ThemedText>
+          </Pressable>
+        </ThemedView>
       ))}
     </ThemedView>
   );
@@ -131,6 +143,26 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 4,
     alignItems: 'center',
+  },
+  transactionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  deleteText: {
+    color: 'red',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 8,
   },
 });
 
