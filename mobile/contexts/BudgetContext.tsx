@@ -28,8 +28,7 @@ interface BudgetContextValue extends BudgetState {
     amount: number,
     categoryId: string,
     description?: string,
-    date?: Date
-    description?: string
+    date?: Date,
   ) => void;
 }
 
@@ -49,14 +48,6 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const json = await AsyncStorage.getItem(STORAGE_KEY);
-        if (json) {
-          const data = JSON.parse(json) as BudgetState;
-          setCategories(data.categories);
-          setTransactions(data.transactions);
-        } else {
     let isMounted = true;
     (async () => {
       try {
@@ -64,19 +55,14 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         if (!isMounted) return;
         if (json) {
           const data = JSON.parse(json) as BudgetState;
-          if (isMounted) {
-            setCategories(data.categories);
-            setTransactions(data.transactions);
-          }
-        } else if (isMounted) {
+          setCategories(data.categories);
+          setTransactions(data.transactions);
+        } else {
           setCategories(DEFAULT_CATEGORIES);
         }
       } catch (e) {
         console.error('Failed to load budget data', e);
         setCategories(DEFAULT_CATEGORIES);
-      }
-    })();
-        if (isMounted) setCategories(DEFAULT_CATEGORIES);
       }
     })();
     return () => {
@@ -108,7 +94,6 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     categoryId: string,
     description?: string,
     date: Date = new Date()
-    description?: string
   ) => {
     setTransactions((prev) => [
       ...prev,
@@ -119,7 +104,6 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         categoryId,
         description,
         date: date.toISOString(),
-        date: new Date().toISOString(),
       },
     ]);
   };
