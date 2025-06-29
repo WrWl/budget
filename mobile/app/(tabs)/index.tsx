@@ -126,7 +126,7 @@ export default function HomeScreen() {
               <Button title="Save" onPress={() => { submitTransaction(); setShowTransactionModal(false); }} />
               <Button title="Cancel" onPress={() => setShowTransactionModal(false)} />
             </ScrollView>
-          </View>
+          </ThemedView>
         </View>
       </Modal>
 
@@ -168,12 +168,14 @@ export default function HomeScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 32 }}>
         {transactions.map((t) => (
           <ThemedView key={t.id} style={styles.transactionRow}>
-            <ThemedText>
-              {t.type === 'expense' ? '-' : '+'}
-              {t.amount} ({categories.find((c) => c.id === t.categoryId)?.name}) -{' '}
-              {new Date(t.date).toLocaleDateString()}
-            </ThemedText>
-            <ThemedText>{t.description}</ThemedText>
+            <View style={{ flex: 1 }}>
+              <ThemedText>
+                {t.type === 'expense' ? '-' : '+'}
+                {t.amount} ({categories.find((c) => c.id === t.categoryId)?.name}) -{' '}
+                {new Date(t.date).toLocaleDateString()}
+              </ThemedText>
+              {!!t.description && <ThemedText>{t.description}</ThemedText>}
+            </View>
             <Pressable onPress={() => deleteTransaction(t.id)}>
               <ThemedText style={styles.deleteText}>Delete</ThemedText>
             </Pressable>
