@@ -29,6 +29,7 @@ interface BudgetContextValue extends BudgetState {
     categoryId: string,
     description?: string,
     date?: Date
+    description?: string
   ) => void;
 }
 
@@ -56,6 +57,18 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
           setCategories(data.categories);
           setTransactions(data.transactions);
         } else {
+    let isMounted = true;
+    (async () => {
+      try {
+        const json = await AsyncStorage.getItem(STORAGE_KEY);
+        if (!isMounted) return;
+        if (json) {
+          const data = JSON.parse(json) as BudgetState;
+          if (isMounted) {
+            setCategories(data.categories);
+            setTransactions(data.transactions);
+          }
+        } else if (isMounted) {
           setCategories(DEFAULT_CATEGORIES);
         }
       } catch (e) {
@@ -63,6 +76,12 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         setCategories(DEFAULT_CATEGORIES);
       }
     })();
+        if (isMounted) setCategories(DEFAULT_CATEGORIES);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -89,6 +108,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     categoryId: string,
     description?: string,
     date: Date = new Date()
+    description?: string
   ) => {
     setTransactions((prev) => [
       ...prev,
@@ -99,6 +119,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         categoryId,
         description,
         date: date.toISOString(),
+        date: new Date().toISOString(),
       },
     ]);
   };

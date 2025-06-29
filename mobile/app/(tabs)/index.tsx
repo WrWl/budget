@@ -6,6 +6,14 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedTextInput } from '@/components/ThemedTextInput';
+
+import React, { useState } from 'react';
+import { StyleSheet, TextInput, Button } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+
 import { useBudget } from '@/contexts/BudgetContext';
 
 export default function HomeScreen() {
@@ -16,6 +24,7 @@ export default function HomeScreen() {
   const [description, setDescription] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryType, setNewCategoryType] = useState<'income' | 'expense'>('expense');
+
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -24,13 +33,20 @@ export default function HomeScreen() {
     setCategoryId(first ? first.id : '');
   }, [type, categories]);
 
+
+
   const submitTransaction = () => {
     const value = parseFloat(amount);
     if (!isNaN(value) && categoryId) {
+
       addTransaction(type, value, categoryId, description, date);
       setAmount('');
       setDescription('');
       setDate(new Date());
+
+      addTransaction(type, value, categoryId, description);
+      setAmount('');
+      setDescription('');
     }
   };
 
@@ -56,19 +72,26 @@ export default function HomeScreen() {
             <Picker.Item key={c.id} label={c.name} value={c.id} />
           ))}
       </Picker>
+
       <ThemedTextInput
+
+      <TextInput
         placeholder="Amount"
         value={amount}
         onChangeText={setAmount}
         keyboardType="numeric"
         style={styles.input}
       />
+
       <ThemedTextInput
+
+      <TextInput
         placeholder="Description"
         value={description}
         onChangeText={setDescription}
         style={styles.input}
       />
+
       <Pressable onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
         <ThemedText>{date.toLocaleDateString()}</ThemedText>
       </Pressable>
@@ -90,7 +113,10 @@ export default function HomeScreen() {
         <Picker.Item label="Expense" value="expense" />
         <Picker.Item label="Income" value="income" />
       </Picker>
+
       <ThemedTextInput
+
+      <TextInput
         placeholder="Category name"
         value={newCategoryName}
         onChangeText={setNewCategoryName}
@@ -101,9 +127,12 @@ export default function HomeScreen() {
       <ThemedText type="subtitle" style={styles.section}>Transactions</ThemedText>
       {transactions.map((t) => (
         <ThemedText key={t.id}>
+
           {t.type === 'expense' ? '-' : '+'}
           {t.amount} ({categories.find(c => c.id === t.categoryId)?.name}) -
           {new Date(t.date).toLocaleDateString()}
+
+          {t.type === 'expense' ? '-' : '+'}{t.amount} ({categories.find(c => c.id === t.categoryId)?.name})
         </ThemedText>
       ))}
     </ThemedView>
@@ -116,7 +145,14 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 8,
   },
+
   input: {},
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 8,
+    borderRadius: 4,
+  },
   picker: {
     backgroundColor: '#f0f0f0',
   },
