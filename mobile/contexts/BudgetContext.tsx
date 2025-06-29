@@ -31,6 +31,7 @@ interface BudgetContextValue extends BudgetState {
     date?: Date,
   ) => void;
   deleteTransaction: (id: string) => void;
+  deleteCategory: (id: string) => void;
 }
 
 const BudgetContext = createContext<BudgetContextValue | undefined>(undefined);
@@ -113,9 +114,21 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     setTransactions((prev) => prev.filter((t) => t.id !== id));
   };
 
+  const deleteCategory = (id: string) => {
+    setCategories((prev) => prev.filter((c) => c.id !== id));
+    setTransactions((prev) => prev.filter((t) => t.categoryId !== id));
+  };
+
   return (
     <BudgetContext.Provider
-      value={{ categories, transactions, addCategory, addTransaction, deleteTransaction }}
+      value={{
+        categories,
+        transactions,
+        addCategory,
+        addTransaction,
+        deleteTransaction,
+        deleteCategory,
+      }}
     >
       {children}
     </BudgetContext.Provider>

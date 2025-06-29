@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Dimensions, Pressable, Modal, View } from 'react-native';
+import { StyleSheet, Dimensions, Pressable, Modal, View, Button } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { PieChart } from 'react-native-chart-kit';
 import { ThemedText } from '@/components/ThemedText';
@@ -14,17 +14,18 @@ export default function AnalyticsScreen() {
   const [endDate, setEndDate] = useState(new Date());
   const [showStart, setShowStart] = useState(false);
   const [showEnd, setShowEnd] = useState(false);
+  const [viewType, setViewType] = useState<'expense' | 'income'>('expense');
 
   const filtered = transactions.filter((t) => {
     const d = new Date(t.date);
     return d >= startDate && d <= endDate;
   });
 
-  const expenseTotals = categories
-    .filter((c) => c.type === 'expense')
+  const totals = categories
+    .filter((c) => c.type === viewType)
     .map((c) => {
       const total = filtered
-        .filter((t) => t.type === 'expense' && t.categoryId === c.id)
+        .filter((t) => t.type === viewType && t.categoryId === c.id)
         .reduce((sum, t) => sum + t.amount, 0);
       return { name: c.name, total };
     })
@@ -32,7 +33,7 @@ export default function AnalyticsScreen() {
 
   const COLORS = ['#F44336', '#E91E63', '#9C27B0', '#2196F3', '#009688', '#FF9800', '#795548'];
 
-  const data = expenseTotals.map((d, idx) => ({
+  const data = totals.map((d, idx) => ({
     name: d.name,
     population: d.total,
     color: COLORS[idx % COLORS.length],
@@ -79,6 +80,10 @@ export default function AnalyticsScreen() {
           </View>
         </View>
       </Modal>
+      <View style={styles.switchRow}>
+        <Button title="Expenses" onPress={() => setViewType('expense')} />
+        <Button title="Income" onPress={() => setViewType('income')} />
+      </View>
       <PieChart
         data={data}
         width={Dimensions.get('window').width - 32}
@@ -111,6 +116,12 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 8,
     gap: 8,
   },
   modalOverlay: {
