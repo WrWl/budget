@@ -7,7 +7,6 @@ import { ThemedView } from '@/components/ThemedView';
 import { useBudget } from '@/contexts/BudgetContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
-
 export default function AnalyticsScreen() {
   const { transactions } = useBudget();
   const scheme = useColorScheme() ?? 'light';
