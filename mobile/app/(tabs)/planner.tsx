@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, ScrollView, Pressable, Button } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useBudget } from '@/contexts/BudgetContext';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import ThemeToggleButton from '@/components/ThemeToggleButton';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -12,17 +16,14 @@ interface Row {
   amount: string;
 }
 
-interface WeeklyRow {
-  id: string;
-  name: string;
-  weeks: string[]; // length 4
-}
 
 function sumRows(rows: Row[]) {
   return rows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
 }
 
 export default function PlannerScreen() {
+  const [month, setMonth] = useState(new Date().getMonth());
+  const [year, setYear] = useState(new Date().getFullYear());
   const [netIncome, setNetIncome] = useState('');
   const [prevOver, setPrevOver] = useState('');
   const [debts, setDebts] = useState<Row[]>([]);
@@ -35,18 +36,78 @@ export default function PlannerScreen() {
   const [predicted, setPredicted] = useState<Row[]>([]);
   const [cash, setCash] = useState<Row[]>([]);
 
-  const [weekly, setWeekly] = useState<WeeklyRow[]>([]);
+  const { transactions } = useBudget();
+  const theme = useColorScheme() ?? 'light';
+  const headerBg = theme === 'dark' ? '#333' : '#eee';
 
-  // sync weekly rows with predicted categories
+  const loadData = async () => {
+    const key = `planner-${year}-${month}`;
+    const json = await AsyncStorage.getItem(key);
+    if (json) {
+      const data = JSON.parse(json);
+      setPrevOver(data.prevOver || '');
+      setDebts(data.debts || []);
+      setSavings(data.savings || []);
+      setRegDebts(data.regDebts || []);
+      setRegSavings(data.regSavings || []);
+      setRegOther(data.regOther || []);
+      setPredicted(data.predicted || []);
+      setCash(data.cash || []);
+    } else {
+      const prevDate = new Date(year, month - 1, 1);
+      const prevKey = `planner-${prevDate.getFullYear()}-${prevDate.getMonth()}`;
+      const prevJson = await AsyncStorage.getItem(prevKey);
+      if (prevJson) {
+        const p = JSON.parse(prevJson);
+        setDebts(p.debts?.map((d: Row) => ({ ...d, amount: '' })) || []);
+        setSavings(p.savings?.map((d: Row) => ({ ...d, amount: '' })) || []);
+        setRegDebts(p.regDebts?.map((d: Row) => ({ ...d, amount: '' })) || []);
+        setRegSavings(p.regSavings?.map((d: Row) => ({ ...d, amount: '' })) || []);
+        setRegOther(p.regOther?.map((d: Row) => ({ ...d, amount: '' })) || []);
+        setPredicted(p.predicted?.map((d: Row) => ({ ...d, amount: '' })) || []);
+        setCash(p.cash?.map((d: Row) => ({ ...d, amount: '' })) || []);
+      } else {
+        setDebts([]);
+        setSavings([]);
+        setRegDebts([]);
+        setRegSavings([]);
+        setRegOther([]);
+        setPredicted([]);
+        setCash([]);
+      }
+      setPrevOver('');
+    }
+  };
+
   useEffect(() => {
-    setWeekly(prev => {
-      const existing = prev.filter(w => predicted.some(p => p.id === w.id));
-      const added = predicted
-        .filter(p => !prev.some(w => w.id === p.id))
-        .map(p => ({ id: p.id, name: p.name, weeks: ['', '', '', ''] }));
-      return [...existing, ...added];
-    });
-  }, [predicted]);
+    loadData();
+  }, [month, year]);
+
+  useEffect(() => {
+    const key = `planner-${year}-${month}`;
+    const data = {
+      prevOver,
+      debts,
+      savings,
+      regDebts,
+      regSavings,
+      regOther,
+      predicted,
+      cash,
+    };
+    AsyncStorage.setItem(key, JSON.stringify(data));
+  }, [prevOver, debts, savings, regDebts, regSavings, regOther, predicted, cash, month, year]);
+
+  useEffect(() => {
+    const income = transactions.reduce((s, t) => {
+      const d = new Date(t.date);
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        return s + (t.type === 'income' ? t.amount : -t.amount);
+      }
+      return s;
+    }, 0);
+    setNetIncome(income.toFixed(2));
+  }, [transactions, month, year]);
 
   const debtTotal = sumRows(debts);
   const savingTotal = sumRows(savings);
@@ -59,13 +120,30 @@ export default function PlannerScreen() {
   const predictedTotal = sumRows(predicted) + sumRows(cash);
   const remaining = billsTotal - predictedTotal;
 
+  const weeklyData = predicted.map(p => {
+    const weeks = [0, 0, 0, 0];
+    transactions.forEach(t => {
+      if (
+        t.type === 'expense' &&
+        t.categoryId === p.id
+      ) {
+        const d = new Date(t.date);
+        if (d.getFullYear() === year && d.getMonth() === month) {
+          const idx = Math.min(3, Math.floor((d.getDate() - 1) / 7));
+          weeks[idx] += t.amount;
+        }
+      }
+    });
+    return { id: p.id, name: p.name, weeks };
+  });
+
   const weekTotals = [0, 1, 2, 3].map(i =>
-    weekly.reduce((s, w) => s + (parseFloat(w.weeks[i]) || 0), 0)
+    weeklyData.reduce((s, w) => s + w.weeks[i], 0)
   );
 
   const progress = predicted.map(p => {
-    const spentRow = weekly.find(w => w.id === p.id);
-    const spent = spentRow ? spentRow.weeks.reduce((s, v) => s + (parseFloat(v) || 0), 0) : 0;
+    const spentRow = weeklyData.find(w => w.id === p.id);
+    const spent = spentRow ? spentRow.weeks.reduce((s, v) => s + v, 0) : 0;
     const planned = parseFloat(p.amount) || 0;
     const diff = planned - spent;
     const percent = planned ? ((spent / planned) - 1) * 100 : 0;
@@ -87,29 +165,37 @@ export default function PlannerScreen() {
     setFn(prev => prev.filter(r => r.id !== id));
   };
 
-  const updateWeek = (id: string, week: number, value: string) => {
-    setWeekly(prev =>
-      prev.map(r =>
-        r.id === id ? { ...r, weeks: r.weeks.map((w, i) => (i === week ? value : w)) } : r
-      )
-    );
-  };
 
   return (
     <ThemedView style={styles.container}>
       <ThemeToggleButton />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
         <ThemedText type="title">Plan</ThemedText>
+        <View style={styles.dateRow}>
+          <Picker
+            selectedValue={month}
+            onValueChange={setMonth}
+            style={styles.picker}
+          >
+            {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, idx) => (
+              <Picker.Item key={idx} label={m} value={idx} />
+            ))}
+          </Picker>
+          <Picker
+            selectedValue={year}
+            onValueChange={setYear}
+            style={styles.picker}
+          >
+            {[2023,2024,2025,2026].map(y => (
+              <Picker.Item key={y} label={String(y)} value={y} />
+            ))}
+          </Picker>
+        </View>
 
         {/* Section 1 */}
         <Collapsible title="Початкове положення">
           <ThemedText>Чистий дохід</ThemedText>
-          <ThemedTextInput
-            keyboardType="numeric"
-            value={netIncome}
-            onChangeText={setNetIncome}
-            style={styles.input}
-          />
+          <ThemedText style={styles.input}>{netIncome}</ThemedText>
           <ThemedText>Перевитрати минулого місяця</ThemedText>
           <ThemedTextInput
             keyboardType="numeric"
@@ -297,27 +383,21 @@ export default function PlannerScreen() {
         <Collapsible title="Тижневий звіт">
           <ScrollView horizontal>
             <View>
-              <View style={[styles.row, styles.tableHeader]}>
+              <View style={[styles.row, styles.tableHeader, { backgroundColor: headerBg }]}>
                 <ThemedText style={[styles.cellName, styles.headerCell]}>Категорія</ThemedText>
                 {[1, 2, 3, 4].map(n => (
                   <ThemedText key={n} style={[styles.cell, styles.headerCell]}>W{n}</ThemedText>
                 ))}
               </View>
-              {weekly.map(r => (
+              {weeklyData.map(r => (
                 <View key={r.id} style={styles.row}>
                   <ThemedText style={styles.cellName}>{r.name}</ThemedText>
                   {r.weeks.map((w, i) => (
-                    <ThemedTextInput
-                      key={i}
-                      value={w}
-                      onChangeText={v => updateWeek(r.id, i, v)}
-                      keyboardType="numeric"
-                      style={[styles.input, styles.cell]}
-                    />
+                    <ThemedText key={i} style={styles.cell}>{w.toFixed(2)}</ThemedText>
                   ))}
                 </View>
               ))}
-              <View style={[styles.row, styles.tableHeader]}>
+              <View style={[styles.row, styles.tableHeader, { backgroundColor: headerBg }]}>
                 <ThemedText style={styles.cellName}>Total</ThemedText>
                 {weekTotals.map((t, idx) => (
                   <ThemedText key={idx} style={styles.cell}>{t.toFixed(2)}</ThemedText>
@@ -342,8 +422,6 @@ export default function PlannerScreen() {
             </View>
           ))}
         </Collapsible>
-
-        <Button title="AI-аналіз" onPress={() => {}} />
       </ScrollView>
     </ThemedView>
   );
@@ -383,7 +461,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   tableHeader: {
-    backgroundColor: '#eee',
     paddingVertical: 4,
   },
   cell: {
@@ -404,5 +481,14 @@ const styles = StyleSheet.create({
   },
   progressName: {
     flex: 1,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  picker: {
+    flex: 1,
+    backgroundColor: '#f0f0f0',
   },
 });
